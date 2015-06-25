@@ -1,0 +1,183 @@
+#!/bin/bash
+#
+# rsync_backup - Use rsync to make multiple hard-linked backups
+#
+
+# Set default configuration file location (optional)
+CONFIGFILE=""
+
+# Look for config file in same directory as script if CONFIGFILE not defined
+if [ "$CONFIGFILE" = "" ] ; then
+    progdir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+    CONFIGFILE="$progdir/rsync_backup.conf.sh"
+fi
+
+usage() {
+    echo ""
+    echo "Usage: $progname [-f <configfile>] [-s <source_filter>] [-o extra_rsync_opts]"
+    echo ""
+}
+
+progname=`basename $0`
+
+# Process any command line arguments
+while getopts "f:s:o:h" opt ; do
+    case "${opt}" in
+	f)
+	    CONFIGFILE="${OPTARG}"
+	    ;;
+	s)
+	    # specify a filter to apply to source hosts to be backed up
+	    srcfilter="${OPTARG}"
+	    ;;
+	o)
+	    extra_rsync_opts="${OPTARG}"
+	    ;;
+	h)
+	    usage
+	    exit 0
+	    ;;
+	*)
+	    usage
+	    exit 1
+	    ;;
+    esac
+done
+
+# Source the config file, bail if error
+source $CONFIGFILE || {
+    echo "Error processing config file: [$CONFIGFILE]"
+    echo" Exiting."
+    exit 1
+}
+
+# Note: The source list *must* be grouped by host during processing so that
+# only one timestamped directory per host will be created and so that
+# any --linked-dest option passed to rsync will work correctly. This is
+# accomplished by creating a sorted list of the array keys.
+source_keys=${!SOURCES[@]}
+source_keys=`(for xx in ${!SOURCES[@]} ; do echo "$xx"; done) | sort`
+
+#DEBUG!!!!!!
+for x in $source_keys ; do
+    echo "[$x] => [${SOURCES[$x]}]"
+done
+
+# Bail if BACKUPDIR doesn't already exist
+[ -d $BACKUPDIR ] || {
+    echo "Backup root destination directory does not exist: [$BACKUPDIR]"
+    echo "Exiting."
+    exit 1
+}
+
+echo "Starting backup ($progname) to [$BACKUPDIR]..."
+
+datestr=`date +%Y-%m-%dT%H:%M`
+
+last_srchost=""
+rsync_error=0
+rsync_host_error=0
+ii=0
+while [ "${source_keys[$ii]}" != "" ] ; do
+    srchost=`echo ${source_keys[$ii]} | sed 's/:.*//'`
+    srcdir=`echo ${source_keys[$ii]} | sed 's/.*://'`
+
+#DEBUG!!!!!
+
+echo "[$ii] // [${source_keys[$ii]}] // [$srchost] // [$srcdir]"
+
+    # extra rsync options defined for source
+    srcopts="${SOURCES[${source_keys[$ii]}]}"
+
+    # Make sure $srchost matches any specified filter
+    if [ "$srcfilter" != "" ] ; then
+	if [ "$srchost" != "$srcfilter" ] ; then
+	    echo "Skipping non-matching  host [$srchost] because of filter."
+	    ii=$(($ii + 1))
+	    continue
+	fi
+    fi
+
+    # Starting a new host in the sources list
+    if [ "$last_srchost" != "$srchost" ] ; then
+	# handle any detected rsync failure for this host
+	if [ $rsync_host_error -ne 0 ] ; then
+	    mv $BACKUPDIR/$last_srchost/$datestr $BACKUPDIR/$last_srchost/$datestr.FAILED
+	    rsync_host_error=0
+	fi
+
+	# update timestamp for backup target directory on per host basis
+	datestr=`date +%Y-%m-%dT%H:%M`
+
+        # find directory containing last backup, if any
+	lastdate=`ls $BACKUPDIR/$srchost 2>/dev/null | grep -v "FAILED" | tail -1`
+
+	last_srchost=$srchost
+    fi
+
+    if [ "$srcdir" = "/" ] ; then
+	destleaf="/root/"
+    else
+	destleaf=$srcdir
+    fi
+
+    destdir="$BACKUPDIR/$srchost/$datestr$destleaf"
+
+    # Define a --link-dest option for rsync if a prior backup exists
+    if [ -e $BACKUPDIR/$srchost/$lastdate$destleaf ] ; then
+	linkdest_opt="--link-dest=$BACKUPDIR/$srchost/$lastdate$destleaf"
+    else
+	linkdest_opt=""
+    fi
+
+    # Ensure destdir exists
+    [ -d $destdir ] || mkdir -p $destdir ||  exit 1
+
+    # Run rsync to do backup
+    echo ""
+    echo "Backing up [$srchost:$srcdir] to [$destdir]..."
+    echo "lastdate = [$lastdate]"
+    echo "linkdest_opt = [$linkdest_opt]"
+    echo Doing: [rsync -v --numeric-ids -x -a -H $srcopts $GLOBAL_EXCLUDE_OPTS $linkdest_opt root@$srchost:$srcdir $destdir]
+#!!!!!!    rsync -v --numeric-ids -x -a -H ${EXTRA_FLAGS[$ii]} $GLOBAL_EXCLUDE_FLAGS ${EXCLUDE_FLAGS[$ii]} $linkdest_opt root@$srchost:$srcdir $destdir
+    retn=$?
+
+    # Flag any rsync error
+    if [ $retn -ne 0 ] && [ $retn -ne 24 ] ; then
+	rsync_error=1
+	rsync_host_error=1
+    fi
+
+    ii=$(($ii + 1))
+done
+
+if [ $rsync_error -ne 0  ] ; then
+    echo "Warning: One or more rsync operations returned a non-zero status."
+else
+    # automatically delete oldest backups over the max number to retain
+    last_srchost=""
+    ii=0
+    while [ "${source_keys[$ii]}" != "" ] ; do
+	srchost=`echo ${source_keys[$ii]} | sed 's/:.*//'`
+
+	if [ "$last_srchost" != "$srchost" ] ; then
+	    jj=0
+	    ls -dr $BACKUPDIR/$srchost/* | egrep "[0-9]{4}-[0-9]{2}-[0-9]{2}" | while read x; do
+		jj=$(($jj + 1))
+	    #!!!!!DEBUG
+		echo "[$x] ($jj)"
+		if [[ $jj -gt $MAX_BACKUPS ]] ; then
+		    echo "Deleting [$x]..."
+		    rm -rf "$x"
+		fi
+	    done
+
+	    last_srchost=$srchost
+	fi
+
+	ii=$(($ii + 1))
+    done
+fi
+
+echo "Backup ($progname) to $BACKUPDIR done."
+exit $rsync_error
