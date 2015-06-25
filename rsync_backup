@@ -31,6 +31,7 @@ while getopts "f:s:o:h" opt ; do
 	    srcfilter="${OPTARG}"
 	    ;;
 	o)
+	    # extra arguments to be added to rsync command line
 	    extra_rsync_opts="${OPTARG}"
 	    ;;
 	h)
@@ -55,13 +56,13 @@ source $CONFIGFILE || {
 # only one timestamped directory per host will be created and so that
 # any --linked-dest option passed to rsync will work correctly. This is
 # accomplished by creating a sorted list of the array keys.
-source_keys=${!SOURCES[@]}
-source_keys=`(for xx in ${!SOURCES[@]} ; do echo "$xx"; done) | sort`
-
-#DEBUG!!!!!!
-for x in $source_keys ; do
-    echo "[$x] => [${SOURCES[$x]}]"
-done
+source_keys="${!SOURCES[@]}"
+IFS=$'\n' source_keys=( $( (for xx in "${!SOURCES[@]}" ; do echo "$xx"; done) | sort ) )
+#DEBUG!!!!!
+#echo "Array length: ${#source_keys[@]}"
+#for x in "${source_keys[@]}" ; do
+#    echo "[$x] => [${SOURCES[$x]}]"
+#done
 
 # Bail if BACKUPDIR doesn't already exist
 [ -d $BACKUPDIR ] || {
@@ -83,8 +84,7 @@ while [ "${source_keys[$ii]}" != "" ] ; do
     srcdir=`echo ${source_keys[$ii]} | sed 's/.*://'`
 
 #DEBUG!!!!!
-
-echo "[$ii] // [${source_keys[$ii]}] // [$srchost] // [$srcdir]"
+#echo "[$ii] // [${source_keys[$ii]}] // [$srchost] // [$srcdir]"
 
     # extra rsync options defined for source
     srcopts="${SOURCES[${source_keys[$ii]}]}"
@@ -138,8 +138,8 @@ echo "[$ii] // [${source_keys[$ii]}] // [$srchost] // [$srcdir]"
     echo "Backing up [$srchost:$srcdir] to [$destdir]..."
     echo "lastdate = [$lastdate]"
     echo "linkdest_opt = [$linkdest_opt]"
-    echo Doing: [rsync -v --numeric-ids -x -a -H $srcopts $GLOBAL_EXCLUDE_OPTS $linkdest_opt root@$srchost:$srcdir $destdir]
-#!!!!!!    rsync -v --numeric-ids -x -a -H ${EXTRA_FLAGS[$ii]} $GLOBAL_EXCLUDE_FLAGS ${EXCLUDE_FLAGS[$ii]} $linkdest_opt root@$srchost:$srcdir $destdir
+    echo Doing: [rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_EXCLUDE_OPTS $linkdest_opt root@$srchost:$srcdir $destdir]
+    rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_EXCLUDE_OPTS $linkdest_opt root@$srchost:$srcdir $destdir
     retn=$?
 
     # Flag any rsync error
