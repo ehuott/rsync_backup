@@ -15,10 +15,10 @@ BACKUPDIR=/path/to/backup/directory
 # Max number of backups to retain
 MAX_BACKUPS=14
 
-# Exclude options to apply globally
+# Rsync options to apply globally
 # Example:
-# GLOBAL_EXCLUDE_OPTS="--exclude=.gvfs/ --exclude=NOBACKUP/"
-GLOBAL_EXCLUDE_OPTS=""
+# GLOBAL_RSYNC_OPTS="--exclude=.gvfs/ --exclude=NOBACKUP/"
+GLOBAL_RSYNC_OPTS=""
 
 #
 # Backup Sources
