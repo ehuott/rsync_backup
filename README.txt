@@ -8,7 +8,9 @@ rsync_backup is a Bash script to perform filesystem backups using the rsync util
 
 rsync_backup makes use of rsync's --link-dest option in order to efficiently keep multiple snapshots of the backed up sources. Files that have not changed between successive backups are hard linked together. This greatly reduces the amount of disk space needed to maintain multiple snapshots. It also greatly reduces the amount of data that needs to be transferred for each new backup since only files that have been added or changed since the last backup need to be copied.
 
+By default, rsync_backup will look for a configuration files called 'rsync_backup.conf.sh' in the same directory it is run from. Another default location for the configuration file may be defined at the top of the rsync_backup script.
 
+The configuration file defines the source hosts and directories which are to be backed up as well as other options to be passed rsync either globally or specifically associated with the source. See the sample configurationfile, rsync_backup-example.conf.sh, for more information.
 
 Last update: 25 June 2015
 
