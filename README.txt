@@ -2,7 +2,7 @@ README for rsync_backup
 
 NOTE: rsync_backup comes with ABSOLUTELY NO WARRANTY. This is free software,
 and you are welcome to redistribute it under certain conditions.
-See the GNU General Public Licence in the file COPYING for details.
+See the GNU General Public Licence in the LICENSE file for details.
 
 rsync_backup is a Bash script to perform filesystem backups using the rsync utility. It supports making backups of multiple directory trees on multiple different hosts. Backups are stored on a file system mounted on the system where rsync_backup is run.
 
