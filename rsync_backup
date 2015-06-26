@@ -138,8 +138,8 @@ while [ "${source_keys[$ii]}" != "" ] ; do
     echo "Backing up [$srchost:$srcdir] to [$destdir]..."
     echo "lastdate = [$lastdate]"
     echo "linkdest_opt = [$linkdest_opt]"
-    echo Doing: [rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt root@$srchost:$srcdir $destdir]
-    rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt root@$srchost:$srcdir $destdir
+    echo "Doing: [rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS \"$linkdest_opt\" \"root@$srchost:$srcdir\" \"$destdir\"]"
+    rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS "$linkdest_opt" "root@$srchost:$srcdir" "$destdir"
     retn=$?
 
     # Flag any rsync error
