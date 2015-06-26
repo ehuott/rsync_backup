@@ -2,6 +2,12 @@
 #
 # rsync_backup - Use rsync to make multiple hard-linked backups
 #
+# Copyright (C) 2011-2015 Ed Huott
+#
+# rsync_backup comes with ABSOLUTELY NO WARRANTY. This is free software,
+# and you are welcome to redistribute it under certain conditions.
+# See the GNU General Public Licence in the LICENSE file for details.
+#
 
 # Set default configuration file location (optional)
 CONFIGFILE=""
