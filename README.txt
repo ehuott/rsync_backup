@@ -14,3 +14,9 @@ The configuration file defines the source hosts and directories which are to be 
 
 Last update: 25 June 2015
 
+
+
+# Emacs variables below this line
+# Local Variables:
+# mode:visual-line
+# End:
