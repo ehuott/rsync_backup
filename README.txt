@@ -10,9 +10,14 @@ rsync_backup makes use of rsync's --link-dest option in order to efficiently kee
 
 By default, rsync_backup will look for a configuration files called 'rsync_backup.conf.sh' in the same directory it is run from. Another default location for the configuration file may be defined at the top of the rsync_backup script.
 
-The configuration file defines the source hosts and directories which are to be backed up as well as other options to be passed rsync either globally or specifically associated with the source. See the sample configurationfile, rsync_backup-example.conf.sh, for more information.
+The configuration file defines the source hosts and directories which are to be backed up as well as other options to be passed rsync either globally or specifically associated with the source. See the sample configuration file, rsync_backup-example.conf.sh, for more information.
 
-Last update: 25 June 2015
+This project is maintained on GitHub. You may download or clone a copy of the repository here:
+
+https://github.com/ehuott/rsync_backup
+
+
+Last update: 29 June 2015
 
 
 
