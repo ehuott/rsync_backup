@@ -86,14 +86,21 @@ rsync_error=0
 rsync_host_error=0
 ii=0
 while [ "${source_keys[$ii]}" != "" ] ; do
-    srchost=`echo ${source_keys[$ii]} | sed 's/:.*//'`
+    # get source host, directory and, optionally, user from source key
+    srchost=`echo ${source_keys[$ii]} | sed 's/^.*@//' | sed 's/:.*//'`
     srcdir=`echo ${source_keys[$ii]} | sed 's/.*://'`
-
-#DEBUG!!!!!
-#echo "[$ii] // [${source_keys[$ii]}] // [$srchost] // [$srcdir]"
+    if echo "${source_keys[$ii]}" | grep '@' > /dev/null 2>&1 ; then
+	srcuser=`echo ${source_keys[$ii]} | sed 's/\@.*//'`
+    else
+	srcuser="$USER"
+    fi
 
     # extra rsync options defined for source
     srcopts="${SOURCES[${source_keys[$ii]}]}"
+
+#DEBUG!!!!!vvvvv
+echo "[$ii] [${source_keys[$ii]}] [$srcuser] [$srchost] [$srcdir] [$srcopts]"
+#DEBUG!!!!!^^^^^
 
     # Make sure $srchost matches any specified filter
     if [ "$srcfilter" != "" ] ; then
@@ -144,8 +151,8 @@ while [ "${source_keys[$ii]}" != "" ] ; do
     echo "Backing up [$srchost:$srcdir] to [$destdir]..."
     echo "lastdate = [$lastdate]"
     echo "linkdest_opt = [$linkdest_opt]"
-    echo "Doing: [rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt \"root@$srchost:$srcdir\" \"$destdir\"]"
-    rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt "root@$srchost:$srcdir" "$destdir"
+    echo "Doing: [rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt \"${srcuser}@$srchost:$srcdir\" \"$destdir\"]"
+    rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt "${srcuser}@$srchost:$srcdir" "$destdir"
     retn=$?
 
     # Flag any rsync error

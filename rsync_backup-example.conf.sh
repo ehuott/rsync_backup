@@ -29,12 +29,16 @@ GLOBAL_RSYNC_OPTS=""
 # that will be passed to the rsync command to do the backup. The format of
 # the key is:
 #
-# host:directory
+# [user@]host:directory
 #
 # where 'directory' is a full path starting with a '/' and ending with
-# a terminating '/' (required, except in the case of the root path (/)
+# a terminating '/' (REQUIRED, except in the case of the root path (/)
 # where only the single '/' is required). The host specifier is
 # required. 'localhost' can be used to refer to the local host.
+#
+# The optional 'user' parameter specifies the user that rsync will use
+# to log into the source host. If unspecified, the shell variable $USER
+# will be used. (Name of the current user running the rsync_backup script.)
 #
 declare -A SOURCES
 SOURCES=(
