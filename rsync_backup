@@ -54,7 +54,7 @@ done
 # Source the config file, bail if error
 source $CONFIGFILE || {
     echo "Error processing config file: [$CONFIGFILE]"
-    echo" Exiting."
+    echo "Exiting."
     exit 1
 }
 
