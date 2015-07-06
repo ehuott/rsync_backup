@@ -91,8 +91,12 @@ while [ "${source_keys[$ii]}" != "" ] ; do
     srcdir=`echo ${source_keys[$ii]} | sed 's/.*://'`
     if echo "${source_keys[$ii]}" | grep '@' > /dev/null 2>&1 ; then
 	srcuser=`echo ${source_keys[$ii]} | sed 's/\@.*//'`
-    else
+    elif [ -n "$USER" ] ; then
 	srcuser="$USER"
+    elif [ -n "$LOGNAME" ] ; then
+	srcuser="$LOGNAME"
+    else
+	srcuser="root"
     fi
 
     # extra rsync options defined for source
