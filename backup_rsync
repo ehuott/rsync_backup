@@ -1,0 +1,163 @@
+#!/bin/bash
+#
+# backup_rsync - Use rsync to make multiple hard-linked backups to a remote
+#                server.
+#
+# Copyright (C) 2011-2015 Ed Huott
+#
+# backup_rsync comes with ABSOLUTELY NO WARRANTY. This is free software,
+# and you are welcome to redistribute it under certain conditions.
+# See the GNU General Public Licence in the LICENSE file for details.
+#
+
+# Set default configuration file location (optional)
+CONFIGFILE=""
+
+# Look for config file in same directory as script if CONFIGFILE not defined
+if [ "$CONFIGFILE" = "" ] ; then
+    progdir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+    CONFIGFILE="$progdir/backup_rsync.conf.sh"
+fi
+
+usage() {
+    echo ""
+    echo "Usage: $progname [-f <configfile>] [-s <source_filter>] [-o extra_rsync_opts]"
+    echo ""
+}
+
+progname=`basename $0`
+
+# Process any command line arguments
+while getopts "f:s:o:h" opt ; do
+    case "${opt}" in
+	f)
+	    CONFIGFILE="${OPTARG}"
+	    ;;
+	s)
+	    # specify a filter to apply to sources to be backed up
+	    srcfilter="${OPTARG}"
+	    ;;
+	o)
+	    # extra arguments to be added to rsync command line
+	    extra_rsync_opts="${OPTARG}"
+	    ;;
+	h)
+	    usage
+	    exit 0
+	    ;;
+	*)
+	    usage
+	    exit 1
+	    ;;
+    esac
+done
+
+# Source the config file, bail if error
+source $CONFIGFILE || {
+    echo "Error processing config file: [$CONFIGFILE]"
+    echo "Exiting."
+    exit 1
+}
+
+# Get the list of source directories to be backed up.
+source_keys="${!SOURCES[@]}"
+IFS=$'\n' source_keys=( $( (for xx in "${!SOURCES[@]}" ; do echo "$xx"; done) ) )
+
+# Bail if the remote BACKUPDIR is not accessible
+ssh ${BACKUP_USER}@${BACKUP_HOST} test -d $BACKUPDIR || {
+    echo "ERROR: Backup root destination directory does not exist: [$BACKUPDIR]"
+    echo "Exiting."
+    exit 1
+}
+
+echo "Starting backup ($progname) to [$BACKUPDIR]..."
+
+# find directory containing last backup, if any
+lastdate=`ssh ${BACKUP_USER}@${BACKUP_HOST} ls $BACKUPDIR 2>/dev/null | grep -v "FAILED" | tail -1`
+
+#DEBUG!!!!!!
+echo "lastdate is: [$lastdate]"
+
+datestr=`date +%Y-%m-%dT%H:%M`
+
+# Create timestamp named backup snapshot destination directory
+ssh ${BACKUP_USER}@${BACKUP_HOST} "[ -d \"$BACKUPDIR/$datestr\" ] || mkdir -p \"$BACKUPDIR/$datestr\"" || {
+    echo "ERROR: Could not create backup snapshot directory remote host [$BACKUP_HOST]: [$BACKUPDIR/$datestr]"
+    echo "Exiting."
+    exit 1
+}
+
+rsync_error=0
+ii=0
+while [ "${source_keys[$ii]}" != "" ] ; do
+    # get the current source to be backedup
+    srcdir=${source_keys[$ii]}
+
+    # extra rsync options defined for source
+    srcopts="${SOURCES[${source_keys[$ii]}]}"
+
+#DEBUG!!!!!vvvvv
+echo "[$ii] [${source_keys[$ii]}] [$srcdir] [$srcopts]"
+#DEBUG!!!!!^^^^^
+
+    # Make sure $srcdir matches any specified filter
+    if [ "$srcfilter" != "" ] ; then
+	if [ "$srcdir" != "$srcfilter" ] ; then
+	    echo "Skipping non-matching source [$srcdir] because of filter."
+	    ii=$(($ii + 1))
+	    continue
+	fi
+    fi
+
+    if [ "$srcdir" = "/" ] ; then
+	destleaf="/root/"
+    else
+	destleaf=$srcdir
+    fi
+
+    destdir="$BACKUPDIR/$datestr$destleaf"
+
+    # Define a --link-dest option for rsync if a prior backup exists
+    if  ssh ${BACKUP_USER}@${BACKUP_HOST} test -d $BACKUPDIR/$lastdate$destleaf ; then
+	linkdest_opt="--link-dest=$BACKUPDIR/$lastdate$destleaf"
+    else
+	linkdest_opt=""
+    fi
+
+    # Run rsync to do backup
+    echo ""
+    echo "Backing up [$srcdir] to [$destdir]..."
+    echo "lastdate = [$lastdate]"
+    echo "linkdest_opt = [$linkdest_opt]"
+    echo "Doing: [rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt \"$srcdir\" \"${BACKUP_USER}@${BACKUP_HOST}:$destdir\"]"
+    rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt "$srcdir" "${BACKUP_USER}@${BACKUP_HOST}:$destdir"
+    retn=$?
+
+    # Flag any rsync error
+    if [ $retn -ne 0 ] && [ $retn -ne 24 ] ; then
+	rsync_error=1
+    fi
+
+    ii=$(($ii + 1))
+done
+
+if [ $rsync_error -ne 0  ] ; then
+    # rsync did not fully succeed. Warn and mark snapshot directory as failed
+    echo "Warning: One or more rsync operations returned a non-zero status."
+    ssh ${BACKUP_USER}@${BACKUP_HOST} mv $BACKUPDIR/$datestr $BACKUPDIR/$datestr.FAILED
+else
+    # automatically delete oldest backups over the max number to retain
+    jj=0
+    ssh ${BACKUP_USER}@${BACKUP_HOST} ls -dr $BACKUPDIR/* | egrep "[0-9]{4}-[0-9]{2}-[0-9]{2}" | while read x; do
+	jj=$(($jj + 1))
+	#!!!!!DEBUG
+	echo "[$x] ($jj)"
+	if [[ $jj -gt $MAX_BACKUPS ]] ; then
+	    echo "Deleting [$x]..."
+#DEBUG!!!!!	ssh ${BACKUP_USER}@${BACKUP_HOST} rm -rf "$x"
+	fi
+    done
+fi
+
+echo "Backup ($progname) to $BACKUPDIR done."
+exit $rsync_error

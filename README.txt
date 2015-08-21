@@ -1,8 +1,11 @@
-README for rsync_backup
+README for rsync_backup and backup_rsync
 
-NOTE: rsync_backup comes with ABSOLUTELY NO WARRANTY. This is free software,
-and you are welcome to redistribute it under certain conditions.
-See the GNU General Public Licence in the LICENSE file for details.
+NOTE: This software comes with ABSOLUTELY NO WARRANTY. It is free
+software, and you are welcome to redistribute it under certain
+conditions.  See the GNU General Public Licence in the LICENSE file
+for details.
+
+RSYNC_BACKUP:
 
 rsync_backup is a Bash script to perform filesystem backups using the rsync utility. It supports making backups of multiple directory trees on multiple different hosts. Backups are stored on a file system mounted on the system where rsync_backup is run.
 
@@ -12,12 +15,16 @@ By default, rsync_backup will look for a configuration files called 'rsync_backu
 
 The configuration file defines the source hosts and directories which are to be backed up as well as other options to be passed rsync either globally or specifically associated with the source. See the sample configuration file, rsync_backup-example.conf.sh, for more information.
 
+BACKUP_RSYNC:
+
+backup_rsync works basically like rsync_backup except that it runs on the machine to be backed up pushes local files and directories to a remote backup server.
+
 This project is maintained on GitHub. You may download or clone a copy of the repository here:
 
 https://github.com/ehuott/rsync_backup
 
 
-Last update: 29 June 2015
+Last update: 21 August 2015
 
 
 
