@@ -17,7 +17,7 @@ The configuration file defines the source hosts and directories which are to be 
 
 BACKUP_RSYNC:
 
-backup_rsync works basically like rsync_backup except that it runs on the machine to be backed up pushes local files and directories to a remote backup server.
+backup_rsync works basically like rsync_backup except that it runs on the machine to be backed up and pushes local files and directories to a remote backup server.
 
 This project is maintained on GitHub. You may download or clone a copy of the repository here:
 
