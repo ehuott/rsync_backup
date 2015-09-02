@@ -124,6 +124,9 @@ echo "[$ii] [${source_keys[$ii]}] [$srcdir] [$srcopts]"
 	linkdest_opt=""
     fi
 
+    # Attempt to ensure destdir exists (rsync will fail otherwise)
+    ssh ${BACKUP_USER}@${BACKUP_HOST} "mkdir -p \"$destdir\""
+
     # Run rsync to do backup
     echo ""
     echo "Backing up [$srcdir] to [$destdir]..."
