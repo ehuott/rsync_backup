@@ -112,14 +112,14 @@ echo "[$ii] [${source_keys[$ii]}] [$srcdir] [$srcopts]"
     if [ "$srcdir" = "/" ] ; then
 	destleaf="/root/"
     else
-	destleaf=$srcdir
+	destleaf="$srcdir"
     fi
 
     destdir="$BACKUPDIR/$datestr$destleaf"
 
     # Define a --link-dest option for rsync if a prior backup exists
-    if  ssh ${BACKUP_USER}@${BACKUP_HOST} test -d $BACKUPDIR/$lastdate$destleaf ; then
-	linkdest_opt="--link-dest=$BACKUPDIR/$lastdate$destleaf"
+    if  ssh ${BACKUP_USER}@${BACKUP_HOST} test -d \"$BACKUPDIR/$lastdate$destleaf\" ; then
+	linkdest_opt="--link-dest='$BACKUPDIR/$lastdate$destleaf'"
     else
 	linkdest_opt=""
     fi
@@ -132,8 +132,8 @@ echo "[$ii] [${source_keys[$ii]}] [$srcdir] [$srcopts]"
     echo "Backing up [$srcdir] to [$destdir]..."
     echo "lastdate = [$lastdate]"
     echo "linkdest_opt = [$linkdest_opt]"
-    echo "Doing: [rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt \"$srcdir\" \"${BACKUP_USER}@${BACKUP_HOST}:$destdir\"]"
-    rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt "$srcdir" "${BACKUP_USER}@${BACKUP_HOST}:$destdir"
+    echo "Doing: [rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt \"$srcdir\" \"${BACKUP_USER}@${BACKUP_HOST}:'$destdir'\"]"
+    rsync -v --numeric-ids -x -a -H $srcopts $extra_rsync_opts $GLOBAL_RSYNC_OPTS $linkdest_opt "$srcdir" "${BACKUP_USER}@${BACKUP_HOST}:'$destdir'"
     retn=$?
 
     # Flag any rsync error
@@ -151,13 +151,13 @@ if [ $rsync_error -ne 0  ] ; then
 else
     # automatically delete oldest backups over the max number to retain
     jj=0
-    ssh ${BACKUP_USER}@${BACKUP_HOST} ls -dr $BACKUPDIR/* | egrep "[0-9]{4}-[0-9]{2}-[0-9]{2}" | while read x; do
+    ssh ${BACKUP_USER}@${BACKUP_HOST} ls -dr "$BACKUPDIR/*" | egrep "[0-9]{4}-[0-9]{2}-[0-9]{2}" | while read x; do
 	jj=$(($jj + 1))
 	#!!!!!DEBUG
 	echo "[$x] ($jj)"
 	if [[ $jj -gt $MAX_BACKUPS ]] ; then
 	    echo "Deleting [$x]..."
-#DEBUG!!!!!	ssh ${BACKUP_USER}@${BACKUP_HOST} rm -rf "$x"
+	ssh -n ${BACKUP_USER}@${BACKUP_HOST} rm -rf "$x"
 	fi
     done
 fi
